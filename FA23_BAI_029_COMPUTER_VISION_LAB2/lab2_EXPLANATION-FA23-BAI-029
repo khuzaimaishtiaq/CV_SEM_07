@@ -1,0 +1,105 @@
+# Lab Task 02: Effect of Image Filtering on Skin-Lesion Classification
+
+## Objective
+To investigate how different spatial-domain image-processing filters affect the performance of pretrained deep-learning models for skin-lesion classification.
+
+## Dataset
+**HAM10000 Skin-Lesion Dataset**
+- **Selected Classes (7):** 'akiec', 'bcc', 'bkl', 'df', 'mel', 'nv', 'vasc'
+- **Total Valid Images:** 10,015
+- **Dataset Split:**
+  - Training: 8,020
+  - Validation: 1,005
+  - Testing: 990
+
+## Selected Pretrained Models
+Based on Lab Activity 1, the following three best models were evaluated:
+1. **Model 1:** ResNet101 features + XGBoost
+2. **Model 2:** ResNet101 (Fine-tuned)
+3. **Model 3:** DenseNet121 (Fine-tuned)
+
+---
+
+## Experimental Results
+
+The following table summarizes the classification performance of the three models across the unfiltered baseline and five different image-processing filters (Average, Gaussian, Median, Sharpening, and Sobel).
+
+| Model | Filter | Accuracy (%) | Precision (%) | Recall (%) | F1-score (%) | Macro-F1 (%) | AUC (%) |
+|-------|--------|--------------|---------------|------------|--------------|--------------|---------|
+| **Best Model 1 (ResNet101 + XGBoost)** | No Filter | 81.21 | 80.63 | 81.21 | 80.80 | 62.78 | 93.65 |
+| | Average | 80.20 | 79.47 | 80.20 | 79.56 | 63.78 | 93.23 |
+| | Gaussian | 79.70 | 78.74 | 79.70 | 78.97 | 64.12 | 93.59 |
+| | Median | 79.39 | 78.51 | 79.39 | 78.80 | 60.66 | 93.17 |
+| | Sharpening | **82.12** | 81.63 | 82.12 | 81.75 | 65.01 | 94.13 |
+| | Sobel | 73.64 | 70.25 | 73.64 | 71.33 | 42.94 | 86.48 |
+| **Best Model 2 (ResNet101, fine-tuned)** | No Filter | 79.29 | 80.85 | 79.29 | 79.71 | 60.71 | 90.97 |
+| | Average | 79.19 | 79.68 | 79.19 | 79.20 | 63.30 | 90.10 |
+| | Gaussian | 73.94 | 81.03 | 73.94 | 76.28 | 61.25 | 91.46 |
+| | Median | 79.60 | 78.63 | 79.60 | 78.87 | 61.51 | 90.61 |
+| | Sharpening | **81.72** | 81.21 | 81.72 | 81.32 | 63.74 | 91.78 |
+| | Sobel | 65.76 | 72.44 | 65.76 | 68.12 | 43.45 | 82.16 |
+| **Best Model 3 (DenseNet121, fine-tuned)**| No Filter | **81.31** | 81.66 | 81.31 | 81.41 | 65.05 | 93.83 |
+| | Average | 77.27 | 79.28 | 77.27 | 78.06 | 62.33 | 91.74 |
+| | Gaussian | 80.51 | 80.60 | 80.51 | 80.45 | 61.77 | 91.30 |
+| | Median | 80.71 | 79.93 | 80.71 | 80.10 | 61.61 | 93.60 |
+| | Sharpening | 78.69 | 81.66 | 78.69 | 79.73 | 65.90 | 94.00 |
+| | Sobel | 73.84 | 71.67 | 73.84 | 72.61 | 40.58 | 84.69 |
+
+---
+
+## Questions to Answer
+
+**1. Which three pretrained models performed best in Lab Activity 1?**
+Based on our experiments and evaluations, the top three models are:
+1. ResNet101 features + XGBoost (Best Model 1)
+2. ResNet101 fine-tuned (Best Model 2)
+3. DenseNet121 fine-tuned (Best Model 3)
+
+**2. How does filtering affect each of the three models?**
+- **Model 1 (ResNet101 + XGBoost):** Most smoothing filters slightly decreased overall performance compared to the baseline. However, the Sharpening filter actually improved accuracy (up to 82.12%). The Sobel filter caused a massive drop in accuracy.
+- **Model 2 (ResNet101 fine-tuned):** Similar to Model 1, smoothing filters degraded performance (particularly Gaussian). Sharpening provided a significant boost, making it the best performer for this model (81.72%). Sobel severely hurt performance.
+- **Model 3 (DenseNet121 fine-tuned):** Unlike the others, this model performed best on the unfiltered baseline (81.31%). All filters, including Sharpening, degraded its overall accuracy.
+
+**3. Which filter produces the greatest change compared with the unfiltered baseline?**
+The **Sobel edge filter** produced the most drastic negative change across all three models, dropping accuracy by roughly 7.5% to 13.5% and severely cratering Macro-F1 scores down to the 40% range. 
+
+**4. Does the effect of a filter remain consistent across all three models?**
+Mostly, yes for the negative cases (Sobel always performed worst). However, the Sharpening filter's effect was inconsistent. It served as the optimal preprocessing step for Models 1 and 2 (yielding their highest accuracies), whereas it hurt Model 3, which preferred raw, unfiltered images. 
+
+**5. Does filtering improve or decrease macro-F1 and balanced accuracy?**
+Filtering generally decreased overall Accuracy and F1-score compared to the baseline. Interestingly, Sharpening improved the Macro-F1 score slightly for all three models (e.g. Model 1 went from 62.78% to 65.01%, Model 3 went from 65.05% to 65.90%). This suggests that enhancing edges may occasionally help the network distinguish minority classes better, even if overall accuracy stays the same or drops. Sobel, on the other hand, devastated Macro-F1 across the board.
+
+**6. Which lesion classes are most affected by filtering?**
+The severe drop in Macro-F1 when using aggressive filters (like Sobel) compared to the overall accuracy indicates that minority classes (e.g., `df`, `vasc`, `akiec`) are heavily affected. Because the dataset is highly imbalanced toward `nv` (melanocytic nevi), stripping morphological details via filtering disproportionately damages the model's ability to identify rarer, more complex lesions that rely heavily on texture and color.
+
+**7. Why might smoothing remove useful lesion texture or morphological information?**
+Smoothing filters (Average, Gaussian, Median) act as low-pass filters by averaging neighboring pixels. This inadvertently blurs fine, high-frequency details such as pigment networks, sharp borders, streaks, and subtle micro-structures that dermatologists—and deep learning models—rely on for accurate skin-lesion classification.
+
+**8. Why might sharpening or edge detection help or hurt classification?**
+- **Help (Sharpening):** It can enhance visibility of critical structures like distinct lesion borders, asymmetric patterns, and network lines, providing the CNN with more pronounced structural features (seen in the improvement of Models 1 and 2).
+- **Hurt (Edge Detection / Sobel):** Sobel completely discards critical color and pigment information, converting the image into a harsh magnitude map. Since skin-lesion diagnosis heavily relies on color variation (e.g., distinguishing melanoma by color irregularity), stripping this information cripples the network.
+
+**9. What is the difference between convolution and correlation?**
+In classical image processing, **convolution** involves flipping the filter kernel both horizontally and vertically before sliding it over the image to compute the dot product. **Correlation** involves sliding the kernel across the image without any flipping. For symmetric kernels (like Gaussian, Average, or Median), the outputs of both operations are identical. 
+
+**10. Based on your results, explain the relationship between classical image processing and deep-learning-based feature extraction.**
+Deep learning models inherently learn to extract optimal, hierarchical features directly from raw data; their early layers often act as sophisticated edge and texture filters. Pre-applying aggressive classical filters (like Sobel or heavy blurring) destroys foundational information—such as color and subtle gradients—that the network would normally utilize. While selective enhancement (like Sharpening) can occasionally emphasize features the network struggles with, standard CNNs usually perform best on raw images, as they can "learn" what features are most important rather than being forced to rely on manually engineered ones.
+
+---
+
+## Code Submission and Instructions
+
+All experiments were conducted and documented in the Jupyter notebook `lab 2.ipynb`. The notebook is organized into the following complete sections:
+- Dataset preparation (Metadata linking, 80/10/10 split)
+- Model loading (ResNet101, DenseNet121, XGBoost)
+- Baseline experiment
+- Image filtering application
+- Training loops (AMP, Early Stopping, Class Weighting)
+- Evaluation and Visualization (Metrics computations)
+- Comparative analysis (Automated dataframe results)
+
+### How to Run the Experiments
+1. Open `lab 2.ipynb` in Google Colab, Kaggle, or a local Jupyter environment.
+2. Ensure you have the required dependencies installed (e.g., `torch`, `torchvision`, `xgboost`, `opencv-python`, `pandas`).
+3. Run the cells sequentially. The dataset (`kmader/skin-cancer-mnist-ham10000`) is automatically downloaded via `kagglehub`.
+4. The notebook will automatically preprocess the images, apply the 6 filter states, fine-tune the models, and output a CSV file `filter_retrain_results.csv` with the comparison table shown above.
